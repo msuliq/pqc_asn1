@@ -1,0 +1,171 @@
+# data/oids.yml — Canonical NIST PQC OID registry.
+#
+# Single source of truth for built-in OID metadata (dotted strings,
+# key sizes, algorithm family, standard reference, security level).
+#
+# To add a new algorithm:
+#   1. Add an entry below.
+#   2. Add the Ruby constant to lib/pqc_asn1/oid.rb.
+#   3. Run `bundle exec rake codegen:oid_c` to regenerate the C table.
+#   4. Run `bundle exec rake compile` to rebuild the extension.
+#
+# Field descriptions:
+#   dotted:          OID in dotted-decimal notation
+#   family:          Algorithm family (ML-DSA, ML-KEM, SLH-DSA)
+#   standard:        NIST standard defining the algorithm
+#   security:        Security level in bits
+#   public_key_size: Expected public key size in bytes (SPKI)
+#   secret_key_size: Expected secret key size in bytes (PKCS#8)
+#
+# Sources (verified 2026-03-14):
+#   ML-DSA:  NIST FIPS 204, Table 2; NIST CSOR OID arc 2.16.840.1.101.3.4.3
+#   ML-KEM:  NIST FIPS 203; NIST CSOR OID arc 2.16.840.1.101.3.4.4
+#   SLH-DSA: NIST FIPS 205, Table 2; NIST CSOR OID arc 2.16.840.1.101.3.4.3
+---
+# ML-DSA (FIPS 204) — Module-Lattice Digital Signature Algorithm
+- name: ML_DSA_44
+  dotted: "2.16.840.1.101.3.4.3.17"
+  family: ML-DSA
+  standard: FIPS 204
+  security: 128
+  public_key_size: 1312
+  secret_key_size: 2560
+
+- name: ML_DSA_65
+  dotted: "2.16.840.1.101.3.4.3.18"
+  family: ML-DSA
+  standard: FIPS 204
+  security: 192
+  public_key_size: 1952
+  secret_key_size: 4032
+
+- name: ML_DSA_87
+  dotted: "2.16.840.1.101.3.4.3.19"
+  family: ML-DSA
+  standard: FIPS 204
+  security: 256
+  public_key_size: 2592
+  secret_key_size: 4896
+
+# ML-KEM (FIPS 203) — Module-Lattice Key Encapsulation Mechanism
+- name: ML_KEM_512
+  dotted: "2.16.840.1.101.3.4.4.1"
+  family: ML-KEM
+  standard: FIPS 203
+  security: 128
+  public_key_size: 800
+  secret_key_size: 1632
+
+- name: ML_KEM_768
+  dotted: "2.16.840.1.101.3.4.4.2"
+  family: ML-KEM
+  standard: FIPS 203
+  security: 192
+  public_key_size: 1184
+  secret_key_size: 2400
+
+- name: ML_KEM_1024
+  dotted: "2.16.840.1.101.3.4.4.3"
+  family: ML-KEM
+  standard: FIPS 203
+  security: 256
+  public_key_size: 1568
+  secret_key_size: 3168
+
+# SLH-DSA SHA-2 (FIPS 205) — Stateless Hash-Based Digital Signature, SHA-2 instantiations
+- name: SLH_DSA_SHA2_128S
+  dotted: "2.16.840.1.101.3.4.3.20"
+  family: SLH-DSA
+  standard: FIPS 205
+  security: 128
+  public_key_size: 32
+  secret_key_size: 64
+
+- name: SLH_DSA_SHA2_128F
+  dotted: "2.16.840.1.101.3.4.3.21"
+  family: SLH-DSA
+  standard: FIPS 205
+  security: 128
+  public_key_size: 32
+  secret_key_size: 64
+
+- name: SLH_DSA_SHA2_192S
+  dotted: "2.16.840.1.101.3.4.3.22"
+  family: SLH-DSA
+  standard: FIPS 205
+  security: 192
+  public_key_size: 48
+  secret_key_size: 96
+
+- name: SLH_DSA_SHA2_192F
+  dotted: "2.16.840.1.101.3.4.3.23"
+  family: SLH-DSA
+  standard: FIPS 205
+  security: 192
+  public_key_size: 48
+  secret_key_size: 96
+
+- name: SLH_DSA_SHA2_256S
+  dotted: "2.16.840.1.101.3.4.3.24"
+  family: SLH-DSA
+  standard: FIPS 205
+  security: 256
+  public_key_size: 64
+  secret_key_size: 128
+
+- name: SLH_DSA_SHA2_256F
+  dotted: "2.16.840.1.101.3.4.3.25"
+  family: SLH-DSA
+  standard: FIPS 205
+  security: 256
+  public_key_size: 64
+  secret_key_size: 128
+
+# SLH-DSA SHAKE (FIPS 205) — Stateless Hash-Based Digital Signature, SHAKE instantiations
+- name: SLH_DSA_SHAKE_128S
+  dotted: "2.16.840.1.101.3.4.3.26"
+  family: SLH-DSA
+  standard: FIPS 205
+  security: 128
+  public_key_size: 32
+  secret_key_size: 64
+
+- name: SLH_DSA_SHAKE_128F
+  dotted: "2.16.840.1.101.3.4.3.27"
+  family: SLH-DSA
+  standard: FIPS 205
+  security: 128
+  public_key_size: 32
+  secret_key_size: 64
+
+- name: SLH_DSA_SHAKE_192S
+  dotted: "2.16.840.1.101.3.4.3.28"
+  family: SLH-DSA
+  standard: FIPS 205
+  security: 192
+  public_key_size: 48
+  secret_key_size: 96
+
+- name: SLH_DSA_SHAKE_192F
+  dotted: "2.16.840.1.101.3.4.3.29"
+  family: SLH-DSA
+  standard: FIPS 205
+  security: 192
+  public_key_size: 48
+  secret_key_size: 96
+
+- name: SLH_DSA_SHAKE_256S
+  dotted: "2.16.840.1.101.3.4.3.30"
+  family: SLH-DSA
+  standard: FIPS 205
+  security: 256
+  public_key_size: 64
+  secret_key_size: 128
+
+- name: SLH_DSA_SHAKE_256F
+  dotted: "2.16.840.1.101.3.4.3.31"
+  family: SLH-DSA
+  standard: FIPS 205
+  security: 256
+  public_key_size: 64
+  secret_key_size: 128

@@ -1,0 +1,3 @@
+upstream: https://github.com/msuliq/libpqcasn1
+source: local checkout (/Users/msuliq/Projects/libpqcasn1)
+vendored_at: 2026-03-17T09:42:39Z

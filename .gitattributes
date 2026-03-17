@@ -1,0 +1,36 @@
+# Normalize line endings to LF for all text files.
+# This ensures SHA256 checksums of vendored C files are consistent
+# across platforms (critical for rake vendor:verify on Windows).
+* text=auto eol=lf
+
+# Vendored C source — must never get CRLF or vendor:verify will fail.
+*.c text eol=lf
+*.h text eol=lf
+
+# Ruby source
+*.rb text eol=lf
+
+# Config / data files
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf
+
+# Shell scripts — LF required for execution
+*.sh text eol=lf
+
+# Windows batch files — keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binaries — no conversion
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.bundle binary
+*.so   binary
+*.dylib binary
+*.dll  binary

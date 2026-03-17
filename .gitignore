@@ -1,0 +1,50 @@
+# Compiled C extension
+*.o
+*.so
+*.bundle
+*.dll
+*.a
+mkmf.log
+Makefile
+
+# rake-compiler output
+tmp/
+pkg/
+*.gem
+
+# Generated extension
+lib/pqc_asn1/pqc_asn1_ext.bundle
+lib/pqc_asn1/pqc_asn1_ext.so
+ext/pqc_asn1/Makefile
+ext/pqc_asn1/*.bundle
+ext/pqc_asn1/*.so
+ext/pqc_asn1/*.o
+
+# Bundler
+.bundle/
+vendor/bundle/
+Gemfile.lock
+
+# Test coverage
+coverage/
+
+# Documentation
+doc/
+rdoc/
+.yardoc/
+
+# macOS
+.DS_Store
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Ruby LSP
+.ruby-lsp/
+
+# Claude Code
+.claude/

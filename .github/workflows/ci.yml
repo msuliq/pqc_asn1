@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Ruby ${{ matrix.ruby }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["2.7", "3.2", "4.0"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        exclude:
+          # Ruby 2.7 on Windows has toolchain issues with native extensions.
+          - ruby: "2.7"
+            os: windows-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+      - name: Compile extension
+        run: bundle exec rake compile
+
+      - name: Run test suite
+        run: bundle exec rake test
+
+      - name: Run fuzz tests
+        run: bundle exec rake test:fuzz
+
+      - name: Run property tests
+        run: bundle exec rake test:property
+
+      - name: Verify vendored file checksums
+        run: bundle exec rake vendor:verify
+
+  lint:
+    name: Lint (StandardRB)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      - name: Run StandardRB
+        run: bundle exec standardrb --no-fix
+
+  cppcheck:
+    name: cppcheck (C static analysis)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+
+      - name: Run cppcheck on project-owned C files
+        run: |
+          cppcheck \
+            --enable=warning,style,performance,portability \
+            --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
+            --inline-suppr \
+            --quiet \
+            -I ext/pqc_asn1 \
+            ext/pqc_asn1/pqc_asn1_ext.c \
+            ext/pqc_asn1/der.c \
+            ext/pqc_asn1/cursor.c \
+            ext/pqc_asn1/pem.c \
+            ext/pqc_asn1/oid.c \
+            ext/pqc_asn1/error.c \
+            ext/pqc_asn1/secure_buffer.c \
+            ext/pqc_asn1/base64_ext.c \
+            ext/pqc_asn1/shared.h \
+            ext/pqc_asn1/error.h \
+            ext/pqc_asn1/oid.h \
+            ext/pqc_asn1/secure_buffer.h
+
+  sanitize:
+    name: ASAN/UBSAN
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      - name: Compile with address and undefined-behaviour sanitizers
+        env:
+          CFLAGS: "-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1"
+          LDFLAGS: "-fsanitize=address,undefined"
+        run: bundle exec rake compile
+
+      - name: Verify vendored checksums
+        run: bundle exec rake vendor:verify
+
+      - name: Run tests under sanitizers
+        env:
+          ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1:detect_stack_use_after_return=1"
+          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
+        run: bundle exec rake test
+
+      - name: Run fuzz tests under sanitizers
+        env:
+          ASAN_OPTIONS: "detect_leaks=1:abort_on_error=1"
+          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
+        run: bundle exec rake test:fuzz
+

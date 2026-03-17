@@ -1,0 +1,4 @@
+ignore:
+  - "ext/**/*"
+  - "tmp/**/*"
+  - "lib/pqc_asn1/key_sizes.rb"
