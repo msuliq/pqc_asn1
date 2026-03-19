@@ -2,15 +2,17 @@
 
 require "mkmf"
 
-# Try to find libpqcasn1 as a system-installed library first.
-# If pkg-config finds it, the system headers and library are used and the
-# vendored pqc_asn1.c is excluded from compilation.
-# If not found, fall back to the vendored copy bundled in ext/pqc_asn1/.
-if pkg_config("pqcasn1")
-  $srcs = %w[pqc_asn1_ext.c error.c secure_buffer.c oid.c cursor.c der.c pem.c base64_ext.c]
-else
-  $srcs = %w[pqc_asn1_ext.c pqc_asn1.c error.c secure_buffer.c oid.c cursor.c der.c pem.c base64_ext.c]
-end
+# Try to find system-installed libraries first.
+# If pkg-config finds them, the system headers and libraries are used and
+# the vendored sources are excluded from compilation.
+# If not found, fall back to the vendored copies bundled in ext/pqc_asn1/.
+pqcsb_available = pkg_config("pqcsb")
+pqcasn1_available = pkg_config("pqcasn1")
+
+$srcs_pqcsb = pqcsb_available ? [] : %w[pqcsb.c]
+$srcs_pqcasn1 = pqcasn1_available ? [] : %w[pqc_asn1.c]
+
+$srcs = %w[pqc_asn1_ext.c error.c secure_buffer.c oid.c cursor.c der.c pem.c base64_ext.c] + $srcs_pqcasn1 + $srcs_pqcsb
 
 # -Wpedantic generates excessive noise from Ruby's own UCRT headers on Windows
 # (C23 attributes like [[nodiscard]], [[maybe_unused]], __VA_OPT__).

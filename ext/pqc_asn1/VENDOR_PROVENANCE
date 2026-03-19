@@ -1,3 +1,5 @@
 upstream: https://github.com/msuliq/libpqcasn1
-source: local checkout (/Users/msuliq/Projects/libpqcasn1)
-vendored_at: 2026-03-17T09:42:39Z
+version: 0.1.5
+tag: v0.1.5
+tarball_sha256: 4182f0b536ec078f57e32b964710dc6acc3c8b2102eb57ad052640beba570dc7
+vendored_at: 2026-03-19T18:00:41Z

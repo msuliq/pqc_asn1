@@ -77,18 +77,18 @@ pem_decoded_cleanup(VALUE arg)
  * pem_encode_sb_ctx_t — SecureBuffer encode context.
  *
  * pem_encode_sb_body calls pqc_asn1_pem_encode with the SecureBuffer's
- * data pointer (valid only inside begin_read/end_read).
+ * data pointer (valid only inside the read guard).
  * pem_encode_sb_cleanup always calls pqcsb_end_read to restore guard
  * pages even when pqc_asn1_pem_encode raises via ruby_xmalloc.  On
  * exception paths it also frees any partially-allocated pem_buf.
  */
 typedef struct {
-    pqcsb_buf_t *sb;
-    const char  *label;
-    size_t       label_len;
-    char        *pem_buf;
-    size_t       pem_len;
-    pqc_asn1_status_t rc;
+    pqcsb_read_guard_t guard;
+    const char        *label;
+    size_t             label_len;
+    char              *pem_buf;
+    size_t             pem_len;
+    pqc_asn1_status_t  rc;
 } pem_encode_sb_ctx_t;
 
 static VALUE
@@ -96,7 +96,7 @@ pem_encode_sb_body(VALUE arg)
 {
     pem_encode_sb_ctx_t *ctx = (pem_encode_sb_ctx_t *)arg;
     ctx->rc = pqc_asn1_pem_encode(
-        ctx->sb->data, ctx->sb->len,
+        ctx->guard.data, ctx->guard.len,
         ctx->label, ctx->label_len,
         &ctx->pem_buf, &ctx->pem_len);
     return Qnil;
@@ -107,7 +107,7 @@ pem_encode_sb_cleanup(VALUE arg)
 {
     pem_encode_sb_ctx_t *ctx = (pem_encode_sb_ctx_t *)arg;
     /* Always restore mprotect — this is the primary purpose of rb_ensure here. */
-    pqcsb_end_read(ctx->sb);
+    pqcsb_end_read(&ctx->guard);
     /* On exception paths pem_buf may have been allocated inside
      * pqc_asn1_pem_encode before ruby_xmalloc raised NoMemoryError.
      * Zero and free it here to prevent leaking PEM-encoded key material.
@@ -263,13 +263,15 @@ rb_pem_encode(UNUSED VALUE _self, VALUE rb_der, VALUE rb_label)
     if (rb_obj_is_kind_of(rb_der, pqcsb_class())) {
         /* SecureBuffer input: use rb_ensure to restore PROT_NONE even when
          * pqc_asn1_pem_encode raises via ruby_xmalloc under memory pressure. */
-        pqcsb_buf_t *sb;
-        TypedData_Get_Struct(rb_der, pqcsb_buf_t, &pqcsb_buf_type, sb);
-        if (sb->wiped)
+        pqcsb_buf_t *sb = (pqcsb_buf_t *)RTYPEDDATA_DATA(rb_der);
+        if (pqcsb_is_wiped(sb))
             rb_raise(rb_eRuntimeError, "SecureBuffer has been wiped");
 
-        pem_encode_sb_ctx_t ctx = {sb, label, label_len, NULL, 0, PQC_ASN1_OK};
-        pqcsb_begin_read(sb);
+        pqcsb_read_guard_t guard = pqcsb_begin_read(sb);
+        if (guard.status != PQCSB_OK)
+            rb_raise(rb_eRuntimeError, "pqcsb_begin_read failed");
+
+        pem_encode_sb_ctx_t ctx = {guard, label, label_len, NULL, 0, PQC_ASN1_OK};
         rb_ensure(pem_encode_sb_body, (VALUE)&ctx,
                   pem_encode_sb_cleanup, (VALUE)&ctx);
         rc      = ctx.rc;

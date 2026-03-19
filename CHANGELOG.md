@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-03-19
+
+### Changed
+
+- **libpqcsb integration**: Replaced the 997-line inline secure buffer
+  implementation with the standalone [libpqcsb](https://github.com/msuliq/libpqcsb)
+  C library. This eliminates code duplication and improves maintainability.
+  - SecureBuffer now uses libpqcsb's opaque buffer API, guard-based access control,
+    and improved memory protection.
+  - Updated `extconf.rb` to vendor libpqcsb with pkg-config fallback.
+  - All existing SecureBuffer methods and their semantics remain unchanged.
+  - Public API is fully backward-compatible.
+- Updated vendored libpqcasn1 to version 0.1.5 (from 0.1.3).
+
 ### Fixed
 
 - `SecureBuffer#wipe!` now returns `self` instead of `nil`, enabling method
