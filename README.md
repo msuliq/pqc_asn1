@@ -249,6 +249,17 @@ Error categories:
 `PqcAsn1::DER::KEY_SIZES` maps each OID to `{ public:, secret: }` byte counts.
 Used automatically when `validate: true` is passed to `build_spki` / `build_pkcs8`.
 
+## Implementation
+
+The gem is implemented in C with no OpenSSL dependency:
+
+- **libpqcasn1** (v0.1.5) — Vendored pure C ASN.1/DER codec for key serialization
+- **libpqcsb** (v0.1.0) — Vendored secure memory buffer library providing `mmap`-backed
+  allocation, guard pages, memory locking, and secure zeroing
+
+Both libraries are vendored; the gem builds a single native extension with no external
+C dependencies beyond POSIX APIs and the C standard library.
+
 ## Requirements
 
 - Ruby >= 2.7.2

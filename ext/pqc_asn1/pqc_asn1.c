@@ -1,10 +1,18 @@
 /*
  * pqc_asn1.c — DER/PEM/Base64 utilities for post-quantum key serialization.
  *
- * VENDORED FILE — do not edit directly.
- * Origin: libpqcasn1 (https://github.com/msuliq/libpqcasn1)
- * To update: run `bundle exec rake vendor:concat` (local checkout) or
- *            run `bundle exec rake vendor:update[VERSION]` (release tarball).
+ * GENERATED FILE — do not edit directly.
+ * Edit the individual source files in src/ and run scripts/concat.sh to
+ * regenerate this file.
+ *
+ * Source files (in concatenation order):
+ *   src/tlv.c      — version, safe arithmetic, secure zeroing, DER TLV helpers
+ *   src/builder.c  — SPKI/PKCS#8 layout structs and DER builders
+ *   src/parser.c   — SPKI/PKCS#8 DER parsers
+ *   src/base64.c   — RFC 4648 Base64 encode/decode
+ *   src/pem.c      — RFC 7468 PEM encode/decode
+ *
+ * Version: 0.1.5
  *
  * Standalone C library — no external dependencies beyond the C standard library.
  *

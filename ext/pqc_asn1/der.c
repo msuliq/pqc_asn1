@@ -265,7 +265,7 @@ typedef struct {
     size_t written;
 } pkcs8_build_ctx_t;
 
-static void
+static pqcsb_status_t
 pkcs8_build_fill(uint8_t *data, size_t len, void *ctx_ptr)
 {
     pkcs8_build_ctx_t *ctx = (pkcs8_build_ctx_t *)ctx_ptr;
@@ -276,6 +276,7 @@ pkcs8_build_fill(uint8_t *data, size_t len, void *ctx_ptr)
         ctx->sk_ptr, ctx->sk_len,
         ctx->pk_ptr, ctx->pk_len,
         &ctx->written);
+    return ctx->rc == PQC_ASN1_OK ? PQCSB_OK : PQCSB_ERR_ALLOC;
 }
 
 /* ------------------------------------------------------------------ */
@@ -289,6 +290,7 @@ pkcs8_build_fill(uint8_t *data, size_t len, void *ctx_ptr)
 typedef struct {
     VALUE          rb_oid_der;
     pqcsb_buf_t   *sk_buf;
+    pqcsb_read_guard_t guard;  /* Read access guard to sk_buf */
     VALUE          result;
     pqc_asn1_status_t rc;
     /* Extended fields (NULL/0 when not using keywords). */
@@ -310,19 +312,19 @@ pkcs8_sb_build_body(VALUE arg)
     pqc_asn1_status_t rc = pqc_asn1_pkcs8_size_ex(
         oid_ptr, oid_len,
         ctx->params_ptr, ctx->params_len,
-        ctx->sk_buf->len, ctx->pk_len, &total);
+        ctx->guard.len, ctx->pk_len, &total);
     if (rc != PQC_ASN1_OK)
         raise_status(rc, NULL);
 
     pkcs8_build_ctx_t build_ctx = {
         oid_ptr, oid_len,
         ctx->params_ptr, ctx->params_len,
-        ctx->sk_buf->data, ctx->sk_buf->len,
+        ctx->guard.data, ctx->guard.len,
         ctx->pk_ptr, ctx->pk_len,
         PQC_ASN1_OK, 0
     };
-    ctx->result = pqcsb_create_inplace(pqcsb_class(), total,
-                                       pkcs8_build_fill, &build_ctx);
+    ctx->result = pqcsb_rb_create_inplace(pqcsb_class(), total,
+                                          pkcs8_build_fill, &build_ctx);
     ctx->rc = build_ctx.rc;
     return Qnil;
 }
@@ -330,7 +332,8 @@ pkcs8_sb_build_body(VALUE arg)
 static VALUE
 pkcs8_sb_ensure_end_read(VALUE arg)
 {
-    pqcsb_end_read((pqcsb_buf_t *)arg);
+    pkcs8_sb_ctx_t *ctx = (pkcs8_sb_ctx_t *)arg;
+    pqcsb_end_read(&ctx->guard);
     return Qnil;
 }
 
@@ -385,21 +388,23 @@ rb_der_build_pkcs8(int argc, VALUE *argv, VALUE _self)
     /* Accept SecureBuffer input: read directly from its mmap region
      * without ever placing secret key material on the Ruby heap. */
     if (rb_obj_is_kind_of(rb_sk, pqcsb_class())) {
-        pqcsb_buf_t *sk_buf;
-        TypedData_Get_Struct(rb_sk, pqcsb_buf_t, &pqcsb_buf_type, sk_buf);
-        if (sk_buf->wiped)
+        pqcsb_buf_t *sk_buf = (pqcsb_buf_t *)RTYPEDDATA_DATA(rb_sk);
+        if (pqcsb_is_wiped(sk_buf))
             rb_raise(rb_eRuntimeError, "SecureBuffer has been wiped");
 
         pkcs8_sb_ctx_t sb_ctx = {
-            rb_oid_der, sk_buf, Qnil, PQC_ASN1_OK,
+            rb_oid_der, sk_buf, {NULL, 0, PQCSB_OK, NULL}, Qnil, PQC_ASN1_OK,
             params_ptr, params_len, pk_ptr, pk_len
         };
-        pqcsb_begin_read(sk_buf);
+        sb_ctx.guard = pqcsb_begin_read(sk_buf);
+        if (sb_ctx.guard.status != PQCSB_OK)
+            rb_raise(rb_eRuntimeError, "pqcsb_begin_read failed");
+
         rb_ensure(pkcs8_sb_build_body, (VALUE)&sb_ctx,
-                  pkcs8_sb_ensure_end_read, (VALUE)sk_buf);
+                  pkcs8_sb_ensure_end_read, (VALUE)&sb_ctx);
 
         if (sb_ctx.rc != PQC_ASN1_OK) {
-            pqcsb_wipe(sb_ctx.result);
+            pqcsb_rb_wipe(sb_ctx.result);
             raise_status(sb_ctx.rc, NULL);
         }
         return sb_ctx.result;
@@ -428,12 +433,12 @@ rb_der_build_pkcs8(int argc, VALUE *argv, VALUE _self)
         pk_ptr, pk_len,
         PQC_ASN1_OK, 0
     };
-    VALUE result = pqcsb_create_inplace(pqcsb_class(), total,
-                                        pkcs8_build_fill, &build_ctx);
+    VALUE result = pqcsb_rb_create_inplace(pqcsb_class(), total,
+                                           pkcs8_build_fill, &build_ctx);
     if (build_ctx.rc != PQC_ASN1_OK) {
         /* Wipe the SecureBuffer so garbage content doesn't escape if
          * the caller rescues the exception. */
-        pqcsb_wipe(result);
+        pqcsb_rb_wipe(result);
         raise_status(build_ctx.rc, NULL);
     }
     return result;
@@ -527,7 +532,7 @@ pkcs8_parse_use_cb(VALUE rb_bytes, VALUE data2,
                         ? frozen_bin_str((const char *)alg_params, (long)alg_params_len)
                         : Qnil;
 
-    ctx->rb_key = pqcsb_create(pqcsb_class(), sk_bytes, sk_len);
+    ctx->rb_key = pqcsb_rb_create(pqcsb_class(), sk_bytes, sk_len);
 
     ctx->rb_pub = pub_key && pub_key_len > 0
                     ? frozen_bin_str((const char *)pub_key, (long)pub_key_len)
@@ -582,7 +587,7 @@ rb_der_parse_pkcs8(UNUSED VALUE _self, VALUE rb_der)
                          ? frozen_bin_str((const char *)alg_params, (long)alg_params_len)
                          : Qnil;
 
-    VALUE key_val = pqcsb_create(pqcsb_class(), sk_bytes, sk_len);
+    VALUE key_val = pqcsb_rb_create(pqcsb_class(), sk_bytes, sk_len);
 
     VALUE pub_val  = pub_key && pub_key_len > 0
                        ? frozen_bin_str((const char *)pub_key, (long)pub_key_len)
