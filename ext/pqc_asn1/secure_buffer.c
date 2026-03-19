@@ -13,7 +13,6 @@
  * 1. OPAQUE STRUCT APPROACH
  *    libpqcsb uses an opaque pqcsb_buf_t struct (definition hidden in internal.h).
  *    This prevents accidental field access and enables safe API evolution.
- *    See LIBPQCSB_INTEGRATION.md for detailed migration notes.
  *
  * 2. GUARD PATTERN FOR ACCESS CONTROL
  *    libpqcsb uses guard structures (pqcsb_read_guard_t) returned by value.
